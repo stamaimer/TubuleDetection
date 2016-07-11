@@ -177,3 +177,5 @@ gen
 
 *.tif
 *.tmp
+venv/*
+scikit-image/*
