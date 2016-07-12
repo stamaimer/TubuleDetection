@@ -7,12 +7,13 @@ import skimage
 import numpy
 import math
 import sys
+import os
 
 from sklearn.utils import shuffle
 from sklearn.cluster import KMeans
 
 from skimage import io, color, data, filters, feature, img_as_float
-from skimage.color import separate_stains
+from skimage.color import rgb2gray, separate_stains
 from skimage.future import graph
 from skimage.filters import gaussian
 from skimage.measure import moments, moments_central
@@ -51,7 +52,7 @@ def detect_nuclear(path):
 
     hematoxylin = separate_stains(image, conv_matrix)[:, :, 0]
 
-    rescaled = rescale_intensity(hematoxylin)
+    rescaled = rescale_intensity(hematoxylin)  # ?
 
     # morphology opening operation
 
@@ -189,8 +190,6 @@ def detect_lumenes(path, nuclear_centroids):
 
     image = io.imread(path)
 
-    logging.info(image.shape)
-
     # image = data.coffee()
 
     clustered = quickshift(image, kernel_size=10, max_dist=30, sigma=0)  # sigma # automatic tuning
@@ -259,19 +258,29 @@ def detect_lumenes(path, nuclear_centroids):
 
         neighborhood = numpy.transpose(list(set(neighborhood)))
 
-        print neighborhood
-
         if len(neighborhood):
 
-            show([opened])
+            plt.figure(i)
 
-            plt.scatter(numpy.array(neighborhood[0]), numpy.array(neighborhood[1]))
+            plt.imshow(opened)
+
+            plt.scatter(numpy.array(neighborhood[1]), numpy.array(neighborhood[0]), s=5, c='g')
 
             plt.xlim(0, 1360)
 
             plt.ylim(1024, 0)
 
-            plt.show()
+            path = path.split('.')[0]
+
+            if not os.path.exists(path):
+
+                os.mkdir(path)
+
+            plt.savefig("%s/%d.png" % (path, i))
+
+            logging.info("%s/%d.png" % (path, i))
+
+            # plt.show()
 
         boundaries.append(boundary)
 
@@ -307,15 +316,13 @@ if __name__ == "__main__":
 
     args = argument_parser.parse_args()
 
-    logging.debug(skimage.__version__)
-
     path = args.path
 
     logging.info("tik")
 
-    nuclear_centroids = detect_nuclear(path)
+    nuclears_centroids = detect_nuclear(path)
 
-    lumen_boundaries = detect_lumenes(path, nuclear_centroids)
+    lumenes_boundaries = detect_lumenes(path, nuclears_centroids)  # just for tidy
 
     # neighborhoods = ConstructNeighborhood(nuclear_centroids, lumen_boundaries)
 
