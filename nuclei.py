@@ -2,8 +2,11 @@
 
 from skimage import io
 from skimage.color import label2rgb, separate_stains
+from skimage.filters import rank
 from skimage.measure import label, regionprops
-from skimage.morphology import disk, binary_opening, binary_closing, opening
+from skimage.feature import blob_doh
+from skimage.exposure import equalize_hist, equalize_adapthist
+from skimage.morphology import disk, binary_opening, binary_closing, opening, closing
 from skimage.future.graph import ncut, rag_mean_color
 from skimage.segmentation import clear_border, find_boundaries, mark_boundaries, quickshift, slic
 
@@ -54,9 +57,12 @@ image = io.imread(path)
 
 image = image[:, :, :3]
 
+image = rank.equalize(image, disk(10))
+
 w, h, d = image.shape
 
 pixels = np.reshape(image, (w * h, d))
+
 
 kmeans = cluster.KMeans(n_clusters=cluster_num)
 
@@ -64,66 +70,193 @@ kmeans.fit(pixels)
 
 labels = kmeans.labels_.reshape((w, h))
 
-image_ = np.copy(image)
-
-nuclei = np.zeros((w, h))
-
 graies = [(rgb2gray(np.average(image[labels == i], axis=0)), i) for i in xrange(cluster_num)]
 
 graies.sort()
 
+nuclei = np.zeros((w, h))
+
 nuclei[labels == graies[0][1]] = 1
+
+image_ = np.copy(image)
 
 image_[labels == graies[1][1]] = 255
 
 image_[labels == graies[2][1]] = 255
 
-hematoxylin = separate_stains(image_, conv_matrix)[:, :, 0]
+pixels = np.reshape(image_, (w * h, d))
 
-opening = opening(hematoxylin, disk(int(sys.argv[2])))
 
-labeled = label(opening)
+kmeans = cluster.KMeans(n_clusters=cluster_num)
 
-boundaries = find_boundaries(opening, mode="inner")
+kmeans.fit(pixels)
 
-ax1 = plt.subplot2grid((2, 4), (0, 0))
+labels = kmeans.labels_.reshape((w, h))
 
-ax1.imshow(image)
+graies = [(rgb2gray(np.average(image[labels == i], axis=0)), i) for i in xrange(cluster_num)]
 
-ax2 = plt.subplot2grid((2, 4), (1, 0))
+graies.sort()
 
-ax2.imshow(nuclei)
+nuclei_ = np.zeros((w, h))
 
-ax3 = plt.subplot2grid((2, 4), (0, 1))
+nuclei_[labels == graies[0][1]] = 1
 
-ax3.imshow(image_)
+image__ = np.copy(image)
 
-ax4 = plt.subplot2grid((2, 4), (1, 1))
+image__[labels == graies[1][1]] = 255
 
-ax4.imshow(hematoxylin)
+image__[labels == graies[2][1]] = 255
 
-ax5 = plt.subplot2grid((2, 4), (0, 2))
+pixels = np.reshape(image__, (w * h, d))
 
-ax5.imshow(hematoxylin)
 
-ax6 = plt.subplot2grid((2, 4), (1, 2))
+kmeans = cluster.KMeans(n_clusters=cluster_num)
 
-ax6.imshow(opening)
+kmeans.fit(pixels)
 
-ax7 = plt.subplot2grid((2, 4), (0, 3))
+labels = kmeans.labels_.reshape((w, h))
 
-ax7.imshow(label2rgb(labeled, image=image))
+graies = [(rgb2gray(np.average(image[labels == i], axis=0)), i) for i in xrange(cluster_num)]
 
-for region in regionprops(labeled):
+graies.sort()
+
+nuclei__ = np.zeros((w, h))
+
+nuclei__[labels == graies[0][1]] = 1
+
+image___ = np.copy(image)
+
+image___[labels == graies[1][1]] = 255
+
+image___[labels == graies[2][1]] = 255
+
+
+hematoxylin_ = separate_stains(image_, conv_matrix)[:, :, 0]
+
+hematoxylin__ = separate_stains(image__, conv_matrix)[:, :, 0]
+
+hematoxylin___ = separate_stains(image___, conv_matrix)[:, :, 0]
+
+# opened_ = opening(hematoxylin_, disk(int(sys.argv[2])))
+#
+# opened__ = opening(hematoxylin__, disk(int(sys.argv[2])))
+
+cleared = clear_border(nuclei)
+
+cleared_ = clear_border(nuclei_)
+
+cleared__ = clear_border(nuclei__)
+
+# closed = binary_closing(cleared, disk(int(sys.argv[2])))
+#
+# closed_ = binary_closing(cleared_, disk(int(sys.argv[2])))
+#
+# closed__ = binary_closing(cleared__, disk(int(sys.argv[2])))
+
+filled = ndi.binary_fill_holes(cleared)
+
+filled_ = ndi.binary_fill_holes(cleared_)
+
+filled__ = ndi.binary_fill_holes(cleared__)
+
+bopened = binary_opening(filled, disk(int(sys.argv[2])))
+
+bopened_ = binary_opening(filled_, disk(int(sys.argv[3])))
+
+bopened__ = binary_opening(filled__, disk(int(sys.argv[4])))
+
+boundaries = find_boundaries(bopened, mode="inner")
+
+boundaries_ = find_boundaries(bopened_, mode="inner")
+
+boundaries__ = find_boundaries(bopened__, mode="inner")
+
+# plt.subplot(131)
+#
+# plt.imshow(hematoxylin_)
+#
+# plt.subplot(132)
+#
+# plt.imshow(hematoxylin__)
+#
+# plt.subplot(133)
+#
+# plt.imshow(hematoxylin___)
+#
+# plt.subplot(324)
+#
+# plt.imshow(mark_boundaries(image, boundaries_))
+#
+# plt.subplot(325)
+#
+# plt.imshow(nuclei__)
+#
+# plt.subplot(326)
+#
+# plt.imshow(mark_boundaries(image, boundaries__))
+
+ax1 = plt.subplot2grid((3, 2), (0, 0))
+
+ax1.imshow(nuclei)
+
+ax2 = plt.subplot2grid((3, 2), (0, 1))
+
+ax2.imshow(mark_boundaries(image, boundaries))
+
+for region in regionprops(label(bopened)):
 
     minr, minc, maxr, maxc = region.bbox
 
-    rect = mpatches.Rectangle((minc, minr), maxc - minc, maxr - minr, fill=0, edgecolor='red', linewidth=2)
+    rect = mpatches.Rectangle((minc, minr), maxc - minc, maxr - minr, fill=0, edgecolor='red', linewidth=0.5)
 
-    ax7.add_patch(rect)
+    ax2.add_patch(rect)
 
-ax8 = plt.subplot2grid((2, 4), (1, 3))
+ax3 = plt.subplot2grid((3, 2), (1, 0))
 
-ax8.imshow(mark_boundaries(image, boundaries, color=(1, 0, 0)))
+ax3.imshow(nuclei_)
+
+ax4 = plt.subplot2grid((3, 2), (1, 1))
+
+ax4.imshow(mark_boundaries(image, boundaries_))
+
+for region in regionprops(label(bopened_)):
+
+    minr, minc, maxr, maxc = region.bbox
+
+    rect = mpatches.Rectangle((minc, minr), maxc - minc, maxr - minr, fill=0, edgecolor='red', linewidth=0.5)
+
+    ax4.add_patch(rect)
+
+ax5 = plt.subplot2grid((3, 2), (2, 0))
+
+ax5.imshow(nuclei__)
+
+ax6 = plt.subplot2grid((3, 2), (2, 1))
+
+ax6.imshow(mark_boundaries(image, boundaries__))
+
+for region in regionprops(label(bopened__)):
+
+    minr, minc, maxr, maxc = region.bbox
+
+    rect = mpatches.Rectangle((minc, minr), maxc - minc, maxr - minr, fill=0, edgecolor='red', linewidth=0.5)
+
+    ax6.add_patch(rect)
+
+# ax7 = plt.subplot2grid((2, 4), (0, 3))
+#
+# ax7.imshow(label2rgb(labeled, image=image))
+#
+# for region in regionprops(labeled):
+#
+#     minr, minc, maxr, maxc = region.bbox
+#
+#     rect = mpatches.Rectangle((minc, minr), maxc - minc, maxr - minr, fill=0, edgecolor='red', linewidth=2)
+#
+#     ax7.add_patch(rect)
+#
+# ax8 = plt.subplot2grid((2, 4), (1, 3))
+#
+# ax8.imshow(mark_boundaries(image, boundaries, color=(0, 1, 0)))
 
 plt.show()

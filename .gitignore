@@ -179,3 +179,8 @@ gen
 *.tmp
 venv/*
 scikit-image/*
+
+tubule1/*
+tubule2/*
+
+*.png

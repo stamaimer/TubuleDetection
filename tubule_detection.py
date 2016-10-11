@@ -339,6 +339,8 @@ def ConstructNeighborhood(nuclear_centroids, lumen_boundaries):
 
                     neighborhood.append(nuclear_centroid_cordinate)
 
+
+
         neighborhoods.append(neighborhood)
 
     return neighborhoods

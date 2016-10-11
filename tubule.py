@@ -66,31 +66,11 @@ image_ = np.copy(image)
 
 tubule = np.zeros((w, h))
 
-nuclei = np.zeros((w, h))
-
 graies = [(rgb2gray(np.average(image[labels == i], axis=0)), i) for i in xrange(cluster_num)]
 
 graies.sort()
 
-nuclei[labels == graies[0][1]] = 1
-
-# tubule[labels == graies[1][1]] = 1
-
 tubule[labels == graies[-1][1]] = 1
-#
-# image_[labels == graies[-1][1]] = 255
-#
-# image_[labels == graies[1][1]] = 0
-#
-# image_[labels == graies[0][1]] = 0
-
-# distance = ndi.distance_transform_edt(tubule)
-#
-# local_maxi = peak_local_max(distance, indices=0, footprint=np.ones((3, 3)), labels=tubule)
-#
-# markers = ndi.label(local_maxi)[0]
-#
-# labels = watershed(-distance, markers, mask=tubule)
 
 cleared = clear_border(tubule)
 
