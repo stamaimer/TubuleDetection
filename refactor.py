@@ -7,10 +7,11 @@
 """
 
 import sys
+import logging
 
 from os import mkdir, path
 from random import shuffle
-from collections import Counter
+# from collections import Counter
 
 from skimage import io
 from skimage.color import label2rgb
@@ -33,6 +34,8 @@ import matplotlib.patches as mpatches
 
 np.set_printoptions(threshold=np.nan)
 
+logging.basicConfig(format="%(asctime)s - %(funcName)s - %(levelname)s - %(message)s",
+                    stream=sys.stdout, level=logging.INFO)
 
 IMAGE = None
 
@@ -174,7 +177,7 @@ def detect_lumens(close_radius, open_radius):
 
     labeled = label(opened)
 
-    show_with_rect(labeled, "L")
+    # show_with_rect(labeled, "L")
 
     lumens = dict()
 
@@ -229,7 +232,7 @@ def detect_nucleis(open_radius, labels, graies):
 
     labeled = label(opened)
 
-    show_with_rect(labeled, "N")
+    # show_with_rect(labeled, "N")
 
     nucleis = np.array([region.centroid for region in regionprops(labeled)])
 
@@ -258,9 +261,9 @@ def construct_neighborhood(lumens, nucleis):
 
         if len(neighborhood):
 
-            scatter(lumen, lumens[lumen][0], neighborhood)
+            # scatter(lumen, lumens[lumen][0], neighborhood)
 
-        records[lumen] = (neighborhood, lumens[lumen][1])
+            records[lumen] = (neighborhood, lumens[lumen][1])
 
     return records
 
@@ -279,7 +282,7 @@ def generate_eigenvectors(records):
 
         area = records[centroid][1]
 
-        eigenvector.append(len(neighborhood) / area)
+        eigenvector.append(len(neighborhood) / float(area))
 
         distance = [np.linalg.norm(centroid - item) for item in neighborhood]
 
@@ -296,6 +299,30 @@ def generate_eigenvectors(records):
 
         eigenvector.append(np.mean([item - np.median(distance) for item in distance]))
 
+        angles = list()
+
+        for ids, i in enumerate(neighborhood):
+
+            for j in neighborhood[ids+1:]:
+
+                oi = i - centroid
+
+                oj = j - centroid
+
+                cosine = np.dot(oi, oj)/np.linalg.norm(oi)/np.linalg.norm(oj)
+
+                angle = np.arccos(np.clip(cosine, -1.0, 1.0))
+
+                angles.append(angle)
+
+        eigenvector.extend([np.std(angles), np.mean(angles), shuffle(angles)])
+
+        interval = [np.linalg.norm(i - j) for ids, i in enumerate(neighborhood) for j in neighborhood[ids+1:]]
+
+        eigenvector.extend([np.std(interval), np.mean(interval), shuffle(interval)])
+
+        # logging.info(eigenvector)
+
         eigenvectors.append(eigenvector)
 
     return eigenvectors
@@ -304,6 +331,8 @@ def generate_eigenvectors(records):
 if __name__ == "__main__":
 
     try:
+
+        logging.info("tik")
 
         PATH2IMAGE = sys.argv[1]
 
@@ -317,19 +346,23 @@ if __name__ == "__main__":
 
         labels, graies = cluster(pixels)
 
+        logging.info(".")
+
         lumens = detect_lumens(int(sys.argv[2]), int(sys.argv[3]))
 
-        print "."
+        logging.info(".")
 
         nucleis = detect_nucleis(int(sys.argv[4]), labels, graies)
 
-        print "."
+        logging.info(".")
 
         records = construct_neighborhood(lumens, nucleis)
 
-        print "."
+        logging.info(".")
 
-        # vectors = generate_eigenvectors(records)
+        vectors = generate_eigenvectors(records)
+
+        logging.info("tok")
 
     except IndexError:
 
