@@ -7,10 +7,10 @@
 """
 
 import sys
+import random
 import logging
 
 from os import mkdir, path
-from random import shuffle
 # from collections import Counter
 
 from skimage import io
@@ -85,7 +85,7 @@ def scatter(centroid, boundary, neighborhood):
 
     # plt.subplot(111)
 
-    figure, ax = plt.subplots(1 ,1)
+    figure, ax = plt.subplots(1, 1)
 
     _image = IMAGE
 
@@ -288,7 +288,7 @@ def generate_eigenvectors(records):
 
         eigenvector.extend([np.std(distance),
                             np.mean(distance),
-                            shuffle(distance),
+                            random.shuffle(distance),
                             max(distance), (min(distance), max(distance))])
 
         eigenvector.append(np.mean([item - max(distance) for item in distance]))
@@ -315,11 +315,13 @@ def generate_eigenvectors(records):
 
                 angles.append(angle)
 
-        eigenvector.extend([np.std(angles), np.mean(angles), shuffle(angles)])
+        eigenvector.extend([np.std(angles), np.mean(angles), random.shuffle(angles)])
 
-        interval = [np.linalg.norm(i - j) for ids, i in enumerate(neighborhood) for j in neighborhood[ids+1:]]
+        interval = [np.linalg.norm(i - j) \
+                    for ids, i in enumerate(neighborhood) \
+                    for j in neighborhood[ids+1:]]
 
-        eigenvector.extend([np.std(interval), np.mean(interval), shuffle(interval)])
+        eigenvector.extend([np.std(interval), np.mean(interval), random.shuffle(interval)])
 
         # logging.info(eigenvector)
 
