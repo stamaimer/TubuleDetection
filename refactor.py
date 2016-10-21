@@ -17,7 +17,7 @@ from skimage import io
 from skimage.color import label2rgb
 from skimage.measure import label, ransac, regionprops, EllipseModel
 # from skimage.exposure import equalize_hist, equalize_adapthist, rescale_intensity
-from skimage.morphology import binary_closing, binary_opening, disk, remove_small_holes, remove_small_objects
+from skimage.morphology import binary_closing, binary_opening, disk
 from skimage.segmentation import clear_border, find_boundaries, mark_boundaries
 
 from sklearn import cluster as Cluster
@@ -31,6 +31,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 
+from pymongo import MongoClient
+
+client = MongoClient()
+
+db = client.TubuleDetection.eigenvectors
 
 np.set_printoptions(threshold=np.nan)
 
@@ -263,18 +268,18 @@ def construct_neighborhood(lumens, nucleis):
 
         if len(neighborhood):
 
-            # scatter(lumen, lumens[lumen][0], neighborhood)
+            scatter(lumen, lumens[lumen][0], neighborhood)
 
             records[lumen] = (neighborhood, lumens[lumen][1])
 
     return records
 
 
-def generate_eigenvectors(records):
+def generate_eigenvectors(name, records):
 
     """generate eigenvectors"""
 
-    eigenvectors = list()
+    # eigenvectors = list()
 
     for centroid in records:
 
@@ -331,9 +336,14 @@ def generate_eigenvectors(records):
 
         # logging.info(eigenvector)
 
-        eigenvectors.append(eigenvector)
+        logging.info(db.insert_one({"name": name,
+                                    "label": " ",
+                                    "coordinate": centroid,
+                                    "eigenvector": eigenvector}).inserted_id)
 
-    return eigenvectors
+    #     eigenvectors.append(eigenvector)
+    #
+    # return eigenvectors
 
 
 if __name__ == "__main__":
@@ -368,7 +378,7 @@ if __name__ == "__main__":
 
         logging.info(".")
 
-        vectors = generate_eigenvectors(records)
+        vectors = generate_eigenvectors(PATH2IMAGE, records)
 
         logging.info("tok")
 
