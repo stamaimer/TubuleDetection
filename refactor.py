@@ -15,9 +15,9 @@ from os import mkdir, path
 
 from skimage import io
 from skimage.color import label2rgb
-from skimage.measure import label, regionprops
+from skimage.measure import label, ransac, regionprops, EllipseModel
 # from skimage.exposure import equalize_hist, equalize_adapthist, rescale_intensity
-from skimage.morphology import binary_closing, binary_opening, disk
+from skimage.morphology import binary_closing, binary_opening, disk, remove_small_holes, remove_small_objects
 from skimage.segmentation import clear_border, find_boundaries, mark_boundaries
 
 from sklearn import cluster as Cluster
@@ -249,13 +249,15 @@ def construct_neighborhood(lumens, nucleis):
 
         neighborhood = list()
 
-        for coordinate in lumens[lumen][0]:
+        for coordinate in lumens[lumen][0][::2]:
 
             for centroid in nucleis:
 
                 if np.linalg.norm(coordinate - centroid) <= 50:
 
                     neighborhood.append(tuple(centroid))
+
+                    break
 
         neighborhood = np.array(list(set(neighborhood)))
 
@@ -286,9 +288,7 @@ def generate_eigenvectors(records):
 
         distance = [np.linalg.norm(centroid - item) for item in neighborhood]
 
-        eigenvector.extend([np.std(distance),
-                            np.mean(distance),
-                            random.shuffle(distance),
+        eigenvector.extend([np.std(distance), np.mean(distance),
                             max(distance), (min(distance), max(distance))])
 
         eigenvector.append(np.mean([item - max(distance) for item in distance]))
@@ -315,13 +315,19 @@ def generate_eigenvectors(records):
 
                 angles.append(angle)
 
-        eigenvector.extend([np.std(angles), np.mean(angles), random.shuffle(angles)])
+        eigenvector.extend([np.std(angles), np.mean(angles)])
 
         interval = [np.linalg.norm(i - j) \
                     for ids, i in enumerate(neighborhood) \
                     for j in neighborhood[ids+1:]]
 
-        eigenvector.extend([np.std(interval), np.mean(interval), random.shuffle(interval)])
+        eigenvector.extend([np.std(interval), np.mean(interval)])
+
+        # print len(neighborhood), neighborhood
+
+        # ransac_model, inliers = ransac(neighborhood, EllipseModel, 5, 3, max_trials=50)
+        #
+        # eigenvector.extend([ransac_model.params[2], ransac_model.params[3]])
 
         # logging.info(eigenvector)
 
