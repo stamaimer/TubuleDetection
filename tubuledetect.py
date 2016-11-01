@@ -153,7 +153,7 @@ def cluster(pixels):
 
     kmeans = Cluster.KMeans(n_clusters=CLUSTER_NUM)
 
-    kmeans.fit(pixels)
+    kmeans.fit(pixels)  # random choice
 
     labels = kmeans.labels_.reshape((W, H))
 

@@ -9,6 +9,7 @@
 from glob import glob
 from subprocess import call
 
+
 for image in glob("images/*.jpg"):
 
     print image
