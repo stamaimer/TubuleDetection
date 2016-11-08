@@ -7,6 +7,7 @@
 """
 
 import sys
+import math
 import random
 import logging
 
@@ -206,7 +207,9 @@ def detect_lumens(close_radius, open_radius):
 
             boundary = np.transpose(np.nonzero(find_boundaries(mask, mode="inner")))
 
-            lumens[region.centroid] = (boundary, region.area)
+            circularity = 4 * math.pi * abs(region.area) / (region.perimeter * region.perimeter)
+
+            lumens[region.centroid] = (boundary, region.area, circularity)
 
     return lumens
 
@@ -266,11 +269,11 @@ def construct_neighborhood(lumens, nucleis):
 
         neighborhood = np.array(list(set(neighborhood)))
 
-        if len(neighborhood):
+        if len(neighborhood) >= 3:
 
             scatter(lumen, lumens[lumen][0], neighborhood)
 
-            records[lumen] = (neighborhood, lumens[lumen][1])
+            records[lumen] = (neighborhood, lumens[lumen][1], lumens[lumen][2])
 
     return records
 
@@ -289,12 +292,16 @@ def generate_eigenvectors(name, records):
 
         area = records[centroid][1]
 
+        circularity = records[centroid][2]
+
         eigenvector.append(len(neighborhood) / float(area))
+
+        eigenvector.append(circularity)
 
         distance = [np.linalg.norm(centroid - item) for item in neighborhood]
 
         eigenvector.extend([np.std(distance), np.mean(distance),
-                            max(distance), (min(distance), max(distance))])
+                            max(distance), min(distance)])
 
         eigenvector.append(np.mean([item - max(distance) for item in distance]))
 
@@ -328,17 +335,17 @@ def generate_eigenvectors(name, records):
 
         eigenvector.extend([np.std(interval), np.mean(interval)])
 
-        # print len(neighborhood), neighborhood
-
         # ransac_model, inliers = ransac(neighborhood, EllipseModel, 5, 3, max_trials=50)
         #
         # eigenvector.extend([ransac_model.params[2], ransac_model.params[3]])
 
         # logging.info(eigenvector)
 
-        logging.info(db.insert_one({"name": name,
-                                    "label": " ",
+        logging.info(db.insert_one({"label": 0,
+                                    "name": name,
+                                    "area": area,
                                     "coordinate": centroid,
+                                    "circularity": circularity,
                                     "eigenvector": eigenvector}).inserted_id)
 
     #     eigenvectors.append(eigenvector)
