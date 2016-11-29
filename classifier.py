@@ -12,6 +12,7 @@ import math
 import numpy as np
 
 from pymongo import MongoClient
+from sklearn.svm import LinearSVC, NuSVC, SVC
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics.classification import accuracy_score
 
@@ -27,7 +28,7 @@ positive = db.find({"label": 1}, {"eigenvector": 1, "label": 1, "_id": 0})
 negative = db.find({"label": 0}, {"eigenvector": 1, "label": 1, "_id": 0})
 
 positive = list(positive)
-negative = list(negative)[:1170]
+negative = list(negative)[:936]
 
 for ele in positive:
 
@@ -87,7 +88,9 @@ for i in xrange(divider):
 
     train_target = positive_train_target + negative_train_target
 
-    classifier = RandomForestClassifier(n_estimators=1000)
+    # classifier = RandomForestClassifier(n_estimators=1000)
+
+    classifier = LinearSVC()
 
     classifier.fit(train_data, train_target)
 
